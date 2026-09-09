@@ -1,0 +1,89 @@
+Solução do modelo (na linguagem Julia os vetores começam com índice 1):
+
+Alocação das UCs aos Professores:
+UC 1 (CH: 3) -> Professor 1 (Peso Pref: 3)
+UC 2 (CH: 2) -> Professor 2 (Peso Pref: 3)
+UC 3 (CH: 4) -> Professor 3 (Peso Pref: 3)
+UC 4 (CH: 4) -> Professor 1 (Peso Pref: 3)
+UC 5 (CH: 4) -> Professor 3 (Peso Pref: 3)
+UC 6 (CH: 3) -> Professor 2 (Peso Pref: 3)
+UC 7 (CH: 3) -> Professor 1 (Peso Pref: 3)
+UC 8 (CH: 3) -> Professor 2 (Peso Pref: 2)
+
+Sobre a carga horária máxima: 
+
+Professor 1: ministra UCs 1, 4, 7 (3+4+3=12 horas semanais)
+Professor 2: ministra UCs 2, 6, 8 (2+3+3=8 horas semanais)
+Professor 3: ministra UCs 3, 5 (4+4=8 horas semanais) 
+
+A função objetivo ficou 23.0
+
+Conteúdo do modelo.lp :
+
+maximize
+obj: 3 x_1,1_ + 3 x_1,2_ + 2 x_1,3_ + 2 x_2,1_ + 3 x_2,2_ + 2 x_2,3_ + 2 x_3,1_ + 3 x_3,2_ + 3 x_3,3_ + 3 x_4,1_ + 2 x_4,2_ + 2 x_4,3_ + 2 x_5,1_ + 3 x_5,2_ + 3 x_5,3_ + 3 x_6,1_ + 3 x_6,2_ + 3 x_6,3_ + 3 x_7,1_ + 1 x_7,2_ + 2 x_7,3_ + 1 x_8,1_ + 2 x_8,2_ + 1 x_8,3_
+subject to
+c1_2: 3 x_1,1_ + 2 x_2,1_ + 4 x_3,1_ + 4 x_4,1_ + 4 x_5,1_ + 3 x_6,1_ + 3 x_7,1_ + 3 x_8,1_ <= 16
+c2_2: 3 x_1,2_ + 2 x_2,2_ + 4 x_3,2_ + 4 x_4,2_ + 4 x_5,2_ + 3 x_6,2_ + 3 x_7,2_ + 3 x_8,2_ <= 16
+c3_2: 3 x_1,3_ + 2 x_2,3_ + 4 x_3,3_ + 4 x_4,3_ + 4 x_5,3_ + 3 x_6,3_ + 3 x_7,3_ + 3 x_8,3_ <= 16
+c1_1: 3 x_1,1_ + 2 x_2,1_ + 4 x_3,1_ + 4 x_4,1_ + 4 x_5,1_ + 3 x_6,1_ + 3 x_7,1_ + 3 x_8,1_ >= 8
+c2_1: 3 x_1,2_ + 2 x_2,2_ + 4 x_3,2_ + 4 x_4,2_ + 4 x_5,2_ + 3 x_6,2_ + 3 x_7,2_ + 3 x_8,2_ >= 8
+c3_1: 3 x_1,3_ + 2 x_2,3_ + 4 x_3,3_ + 4 x_4,3_ + 4 x_5,3_ + 3 x_6,3_ + 3 x_7,3_ + 3 x_8,3_ >= 8
+c1: 1 x_1,1_ + 1 x_1,2_ + 1 x_1,3_ = 1
+c2: 1 x_2,1_ + 1 x_2,2_ + 1 x_2,3_ = 1
+c3: 1 x_3,1_ + 1 x_3,2_ + 1 x_3,3_ = 1
+c4: 1 x_4,1_ + 1 x_4,2_ + 1 x_4,3_ = 1
+c5: 1 x_5,1_ + 1 x_5,2_ + 1 x_5,3_ = 1
+c6: 1 x_6,1_ + 1 x_6,2_ + 1 x_6,3_ = 1
+c7: 1 x_7,1_ + 1 x_7,2_ + 1 x_7,3_ = 1
+c8: 1 x_8,1_ + 1 x_8,2_ + 1 x_8,3_ = 1
+Bounds
+Binary
+x_1,1_
+x_2,1_
+x_3,1_
+x_4,1_
+x_5,1_
+x_6,1_
+x_7,1_
+x_8,1_
+x_1,2_
+x_2,2_
+x_3,2_
+x_4,2_
+x_5,2_
+x_6,2_
+x_7,2_
+x_8,2_
+x_1,3_
+x_2,3_
+x_3,3_
+x_4,3_
+x_5,3_
+x_6,3_
+x_7,3_
+x_8,3_
+End
+
+Dados da instância (fiz uma pequena alteração para facilitar a passagem de dados para o programa):
+
+8
+3
+8
+16
+3
+2
+4
+4
+4
+3
+3
+3
+3 3 2
+2 3 2
+2 3 3
+3 2 2
+2 3 3
+3 3 3
+3 1 2
+1 2 1
