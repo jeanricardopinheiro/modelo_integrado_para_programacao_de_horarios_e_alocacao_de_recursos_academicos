@@ -20,31 +20,42 @@ function entrada_modelo()
 end
 
 function ler_parametros(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd)
-    T = Int[];
-    D = Int[];
-    Sd = Matrix{Int}(undef,0,0);
-    P = Int[];
-    Sdp = Int[];
-    G = Matrix{Int}(undef,0,0);
-    Ij = Int[];
-    Ig = Int[];
-    Lmax = 0;
-    Np = 0;
-    t_ud = Matrix{Int}(undef,0,0);
-    t_pd = Matrix{Int}(undef,0,0)
+    T = Int[]; #vetor
+    D = Int[]; #vetor
+    Sd = Int[]; #vetor de vetores inteiros
+    P = Int[]; #vetor
+    Sdp = Matrix{Int}(undef,0,0);
+    G = Int[]; #vetor
+    Ij = Int[]; #vetor de vetores inteiros
+    Ig = Int[]; #vetor de vetores inteiros
+    Lmax = 0; #int
+    Np = Int[]; #vetor
+    t_ud = Int[]; #vetor
+    t_pd = Int[]; #vetor
 
-    open("modelo1.txt", "r") do inputfile
-    global U = parse(Int, readline(inputfile)) #le uma linha e quando encontra um 'enter' (/n/r) 
-    global P = parse(Int, readline(inputfile)) # ele vai para a próxima linha e segue guardado os dados
-    global Cmin = parse(Int, readline(inputfile))
-    global Cmax = parse(Int, readline(inputfile))
+    open("modelo2.txt", "r") do inputfile
+    linha_T = split(readline(inputfile)) #le a linha toda
+    T = parse.(Int, linha_T) #isola os valores pelos espaços 'perse.'
+    D = parse(Int, readline(inputfile))
+    Cmin = parse(Int, readline(inputfile))
+    Cmax = parse(Int, readline(inputfile))
+    Sd = Int[]; #vetor de vetores inteiros
+    P = parse(Int, readline(inputfile)) #vetor
+    Sdp = Matrix{Int}(undef,0,0); #matriz
+    G = parse(Int, readline(inputfile)) #vetor
+    Ij = Int[]; #vetor de vetores inteiros
+    Ig = Int[]; #vetor de vetores inteiros
+    Lmax = parse(Int, readline(inputfile)); #int #le uma linha e quando encontra um 'enter' (/n/r) ele vai para a próxima linha e segue guardado os dados
+    Np = Int[]; #vetor
+    t_ud = Int[]; #vetor
+    t_pd = Int[]; #vetor
     
-    global CH = Vector{Int}(undef, U)
+    CH = Vector{Int}(undef, U)
     for i in 1:U
         CH[i] = parse(Int, readline(inputfile)) #lê o parametro um a um
     end
 
-    global Pref = Matrix{Int}(undef, U, P)
+    Pref = Matrix{Int}(undef, U, P)
     for i in 1:U
         linha = parse.(Int, split(readline(inputfile)))
         for j in 1:P
