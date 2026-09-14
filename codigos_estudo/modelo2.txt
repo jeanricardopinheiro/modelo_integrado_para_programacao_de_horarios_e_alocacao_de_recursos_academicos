@@ -1,0 +1,13 @@
+60 
+5
+
+#em ordem:
+#conjunto de todos os horários
+#conunto de dias da semana *d
+#subconjunto de horários que pertencem ao dia *d
+#conjunto de turnos *p
+#subconjunto de horários que pertencem as dia *d correspontentes ao turno *p
+#conjunto de grupos/turmas *g
+#subconjunto de unidades ministradas pelo professor *j
+#subconjunto de unidades que o grupo *g deve cursar
+## esses últimos acho que fica bom criar como uma matriz j x g ? na vdd melhor deixar separado
