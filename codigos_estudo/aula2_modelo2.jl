@@ -1,6 +1,8 @@
 using JuMP
 using Gurobi
 
+#teste de commit
+
 if isfile("modelo2.txt")
     println("arquivo encontrado")
 else
