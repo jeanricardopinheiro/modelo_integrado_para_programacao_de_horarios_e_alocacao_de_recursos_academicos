@@ -1,15 +1,9 @@
 using JuMP
 using Gurobi
 
-if isfile("modelo2.txt")
-    println("arquivo encontrado")
-else
-    println("arquivo nao encontrado")
-    exit()
-end 
 function entrada_modelo()
     #printf("digite o nome do arquivo para o modelo: ")
-    if isfile("modelo2.txt")
+    if isfile("modelo2teste.txt")
         println("arquivo encontrado")
     else
         println("arquivo nao encontrado")
@@ -22,7 +16,7 @@ function ler_parametros()
     D = Int[]; #vetor
     Sd = Vector{Vector{Int}}() #vetor de vetores
     P = Int[]; #vetor
-    Sdp = Matrix{Int}(undef,0,0) #matriz de vetores
+    Sdp = Matrix{Vector{Int}}(undef,0,0) #matriz de vetores
     G = Int[]; #vetor
     n_prof = 0;
     Ij = Vector{Vector{Int}}(); #vetor de vetores
@@ -32,6 +26,8 @@ function ler_parametros()
     t_ud = Int[]; #vetor
     t_pd = Int[]; #vetor
     H_i = Int[]; #vetor
+    I = Int[]; #vetor
+    J = Int[]; #vetor
     open("modelo2.txt", "r") do inputfile
         linha_T = split(readline(inputfile));
         T = parse.(Int, linha_T); #conjunto de todos os slots (horarios) t da semana
@@ -42,9 +38,16 @@ function ler_parametros()
             linha_sd = split(readline(inputfile));
             push!(Sd, parse.(Int, linha_sd)) #conjunto de horários que pertencem ao dia d
         end
-        linha_P = split(Int, readline(inputfile));
+        linha_P = split(readline(inputfile));
         P = parse.(Int, linha_P); #conjunto de turnos p
-        Sdp = Matrix{Int}(undef,0,0) #subconjunto de horários do dia d correspodentes ao turno p
+        qtd_turnos = length(P);
+        Sdp = Matrix{Vector{Int}}(undef, qtd_turnos, qtd_dias) #subconjunto de horários do dia d correspodentes ao turno p
+        for d in 1:qtd_dias
+            for p in 1:qtd_turnos
+                linha_sdp = split(readline(inputfile));
+                Sdp[p,d] = parse.(Int, linha_sdp) #horários do dia d que pertencem ao turno p
+            end
+        end
         linha_G = split(readline(inputfile));
         G = parse.(Int, linha_G); #conjunto de turmas g
         n_prof = parse(Int, readline(inputfile)); #numero de professores
@@ -66,8 +69,12 @@ function ler_parametros()
         t_pd = parse.(Int, linha_tpd); #indice do primeiro ho´rario matutino do prox dia
         linha_Hi = split(readline(inputfile));
         H_i = parse.(Int, linha_Hi); #carga horária semanal para a unidade curricular i
-        I = collect(1:length(H_i)) #conjunto de unidades curriculares
-        J = collect(1:length(Ij)) #conjunto de professores
+        I = collect(1:length(H_i)); #conjunto de unidades curriculares
+        J = collect(1:length(Ij)); #conjunto de professores
+        println("H_i = ", H_i)
+        println("length(H_i) = ", length(H_i))
+        println("I = ", I)
+    end
 
     return T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J;
 
@@ -77,11 +84,20 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i
     model = JuMP.Model(Gurobi.Optimizer)
     JuMP.set_silent(model)
 
-    @variable(model, y[1:I ,1:T],Bin)
-    @variable(model, v[1:J ,1:T],Bin)
-    @variable(model, z[1:J ,1:D, 1:P],Bin)
+    @variable(model, y[I ,T],Bin)
+    @variable(model, v[J ,T],Bin)
+    @variable(model, z[J ,D, P],Bin)
 
-    @constraint(model, [i=1:I], sum(y[i,t] for t in 1:T) == H_i[i])   #se G é um vetor e estamos interresados no que tem dentro devemos
+    println("I = ", I)
+    println("T = ", T)
+    println("G = ", G)
+    println("Ig = ", Ig)
+    println("Ij = ", Ij)
+    println("J = ", J)
+    println("D = ", D)
+    println("P = ", P)
+
+    @constraint(model, [i in I], sum(y[i,t] for t in T) == H_i[i])   #se G é um vetor e estamos interresados no que tem dentro devemos
                                                                         #fazer g in G, se G for um valor ai sim g in 1:G
     @constraint(model,[g in G, t in T] ,sum(y[i,t] for i in Ig[g]) <=1)
 
@@ -91,42 +107,67 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i
 
     @constraint(model, [j in J,d in D] ,sum(v[j,t] for t in Sd[d]) <=Lmax)
 
-    @constraint(model, [j in J,d in D, p in P] ,sum(v[j,t] for t in Sdp[p,d]) <= Np * z[j,d,p])
+    @constraint(model, [j in J,d in D, p in P] ,sum(v[j,t] for t in Sdp[p,d]) <= Np[p] * z[j,d,p])
 
     @constraint(model, [j in J,d in D] ,sum(z[j,d,p] for p in P) <= 2)
 
-    write_to_file(model, "modelo1_teste.lp")
+    d_final = D[end]
+
+    @constraint(model, [j in J,d in D ; d!= d_final] ,v[j,(t_ud[d])] + v[j,(t_pd[d+1])] <= 1) #no jump o ';' é talque |
+
+    @constraint(model, [j in J] , sum(H_i[i] for i in Ij[j] ) == sum(sum( v[j,t] for t in Sd[d]) for d in D))
+
+
+    write_to_file(model, "modelo2_teste.lp")
 
     JuMP.optimize!(model)
 
     status = JuMP.termination_status(model)
     println("\nStatus da Solucao: ", status)
-    return status;
+    return status, y, v;
 end
 
-function mostra_resultado(status)
+function mostra_resultado(status, y, T, I, Ij)
+
     if status == MOI.OPTIMAL || status == MOI.FEASIBLE_POINT
-    y_opt = JuMP.value.(y)
-    println("\nAlocação dos horários:")
-    for i in 1:T
-        for j in 1:I
-            if y_opt[i, t] > 0.5  # Se a variável binária for 1
-                println("no horário $t a unidade $i ocorre")
+
+        y_opt = JuMP.value.(y)
+
+        println("\nAlocação dos horários:")
+
+        for i in I
+            for t in T
+
+                if y_opt[i, t] > 0.5
+
+                    prof = 0
+
+                    for j in 1:length(Ij)
+                        if i in Ij[j]
+                            prof = j
+                            println("no horário $t a unidade $i ocorre ministrada por $prof")
+                        end
+                    end
+
+                    #println("no horário $t a unidade $i ocorre ministrada por $prof")
+
+                end
             end
         end
-    end
+
     else
-        println("Nenhuma solução viável foi encontrada.")  
+        println("Nenhuma solução viável foi encontrada.")
     end
+
 end
 
 
 
 function main()
     entrada_modelo();
-    T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd , H_i, I, J= ler_parametros();
-    estado = resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J);
-    mostra_resultado(estado);
+    T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd , H_i, I, J = ler_parametros();
+    estado, y = resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J);
+    mostra_resultado(estado, y, T, I, Ij);
 end
 
-main()
+main()  

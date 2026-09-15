@@ -1,0 +1,90 @@
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+1 2 3 4 5
+1 2 3 4
+5 6 7 8
+9 10 11 12
+13 14 15 16
+17 18 19 20
+1 2 3
+1 2
+3
+4
+5 6
+7
+8
+9 10
+11
+12
+13 14
+15
+16
+17 18
+19
+20
+1 2 3
+3
+4 6 7
+1 2 5 8
+3 9 4
+6 7 1
+4 2 5
+8 3 9
+8
+2 1 1
+4 8 12 16 20
+1 5 9 13 17
+3 2 4 4 4 3 3 3 4
+
+#em ordem:
+#conjunto de todos os horários
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+#conjunto de dias da semana *d
+1 2 3 4 5
+#subconjunto de horários que pertencem ao dia *d
+1 2 3 4
+5 6 7 8
+9 10 11 12
+13 14 15 16
+17 18 19 20
+#conjunto de turnos *p
+1 2 3
+#subconjunto de horários que pertencem as dia *d correspontentes ao turno *p
+1 2
+3
+4
+5 6
+7
+8
+9 10
+11
+12
+13 14
+15
+16
+17 18
+19
+20
+# ver o que é  e apagar isso 3 2 4 4 4 3 3 3 4
+#conjunto de grupos/turmas *g
+1 2 3
+##numero de professores
+3
+#subconjunto de unidades ministradas pelo professor *j
+4 6 7 
+1 2 5 8
+3 9 4
+#subconjunto de unidades que o grupo *g deve cursar
+6 7 1
+4 2 5
+8 3 9
+## parâmetros
+#limite máximo de horas por dia para um professor
+8
+#numero total de slots por turno *p
+2 1 1
+#indice do ultimo horário noturno do dia *d
+4 8 12 16 20
+#indice do primeiro horário matutino do dia seguinte
+1 5 9 13 17
+#carga horária da matéria Hi
+3 2 4 4 4 3 3 3 4
