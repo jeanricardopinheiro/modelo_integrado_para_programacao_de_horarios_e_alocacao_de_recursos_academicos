@@ -1,17 +1,22 @@
 using JuMP
 using Gurobi
+using CSV
+using DataFrames
 
-function entrada_modelo()
-    #printf("digite o nome do arquivo para o modelo: ")
-    if isfile("modelo2teste.txt")
+function busca_de_arquivo()
+    print("Digite o nome do arquivo para o modelo: ")
+    nome_arquivo = readline()
+    caminho = ""planilhas_csv/$nome_arquivo")"
+    if isfile(caminho)
         println("arquivo encontrado")
     else
         println("arquivo nao encontrado")
     exit()
     end 
+    return caminho;
 end
 
-function ler_parametros()
+function ler_parametros(caminho)
     T = Int[]; #vetor
     D = Int[]; #vetor
     Sd = Vector{Vector{Int}}() #vetor de vetores
@@ -28,7 +33,7 @@ function ler_parametros()
     H_i = Int[]; #vetor
     I = Int[]; #vetor
     J = Int[]; #vetor
-    open("modelo2.txt", "r") do inputfile
+    open(caminho, "r") do inputfile
         linha_T = split(readline(inputfile));
         T = parse.(Int, linha_T); #conjunto de todos os slots (horarios) t da semana
         linha_D = split(readline(inputfile));
@@ -111,63 +116,38 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i
 
     @constraint(model, [j in J,d in D] ,sum(z[j,d,p] for p in P) <= 2)
 
-    d_final = D[end]
-
-    @constraint(model, [j in J,d in D ; d!= d_final] ,v[j,(t_ud[d])] + v[j,(t_pd[d+1])] <= 1) #no jump o ';' é talque |
-
-    @constraint(model, [j in J] , sum(H_i[i] for i in Ij[j] ) == sum(sum( v[j,t] for t in Sd[d]) for d in D))
-
-
-    write_to_file(model, "modelo2_teste.lp")
+    write_to_file(model, "modelo1_teste.lp")
 
     JuMP.optimize!(model)
 
     status = JuMP.termination_status(model)
     println("\nStatus da Solucao: ", status)
-    return status, y, v;
+    return status, y;
 end
 
-function mostra_resultado(status, y, T, I, Ij)
-
+function mostra_resultado(status, y, T, I)
     if status == MOI.OPTIMAL || status == MOI.FEASIBLE_POINT
-
-        y_opt = JuMP.value.(y)
-
-        println("\nAlocação dos horários:")
-
-        for i in I
-            for t in T
-
-                if y_opt[i, t] > 0.5
-
-                    prof = 0
-
-                    for j in 1:length(Ij)
-                        if i in Ij[j]
-                            prof = j
-                            println("no horário $t a unidade $i ocorre ministrada por $prof")
-                        end
-                    end
-
-                    #println("no horário $t a unidade $i ocorre ministrada por $prof")
-
-                end
+    y_opt = JuMP.value.(y)
+    println("\nAlocação dos horários:")
+    for i in I
+        for t in T
+            if y_opt[i, t] > 0.5  # Se a variável binária for 1
+                println("no horário $t a unidade $i ocorre")
             end
         end
-
-    else
-        println("Nenhuma solução viável foi encontrada.")
     end
-
+    else
+        println("Nenhuma solução viável foi encontrada.")  
+    end
 end
 
 
 
 function main()
-    entrada_modelo();
-    T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd , H_i, I, J = ler_parametros();
+    caminho = busca_de_arquivo();
+    T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd , H_i, I, J = ler_parametros(caminho);
     estado, y = resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J);
-    mostra_resultado(estado, y, T, I, Ij);
+    mostra_resultado(estado, y, T, I);
 end
 
 main()  
