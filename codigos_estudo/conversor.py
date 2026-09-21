@@ -37,13 +37,13 @@ def obter_vetor_de_vetores(df, nome):
 
 
 def obter_vetor_de_vetores_de_vetores(df, nome):
-    """Lê um valor com 3 níveis (dia -> período -> ids), separados por ';' e ','."""
+    """Lê um valor com 3 níveis (linha -> coluna -> elementos), separados por ';' e ','."""
     texto = limpar_texto(obter_valor_bruto(df, nome))
-    dias = [d.strip() for d in texto.split(";") if d.strip() != ""]
+    linhas = [l.strip() for l in texto.split(";") if l.strip() != ""]
     resultado = []
-    for dia in dias:
-        periodos = [p.strip() for p in dia.split(",") if p.strip() != ""]
-        resultado.append([[int(x) for x in p.split()] for p in periodos])
+    for linha in linhas:
+        colunas = [c.strip() for c in linha.split(",") if c.strip() != ""]
+        resultado.append([[int(x) for x in c.split()] for c in colunas])
     return resultado
 
 
@@ -81,29 +81,42 @@ def preencher_Sd(tamanho_D, tamanho_T):
 
 def preencher_Sdp(tamanho_D, tamanho_P, Np):
     """
-    Para cada dia, divide os slots do dia entre os P períodos,
-    de acordo com a quantidade Np[p] de slots de cada período.
-    Ex.: D=5, P=3, Np=[2,2,1] -> cada dia tem 5 slots, divididos 2/2/1 entre os períodos.
+    Para cada dia 'd', divide os horários daquele dia entre os P turnos,
+    de acordo com a quantidade Np[p] de horários de cada turno.
+
+    Resultado indexado como Sdp[d][p] -> subconjunto de horários do dia d
+    que pertencem ao turno p (matriz D x P de vetores, como no modelo em
+    papel; equivale a Sdp[d, p] no lado Julia).
+
+    Ex.: D=5, P=3, Np=[2,2,1] -> cada dia tem 5 horários, divididos 2/2/1
+    entre os turnos.
     """
     Sdp = []
     valor = 1
-    for _dia in range(tamanho_D):
-        linha = []
+    for _d in range(tamanho_D):
+        linha_dia = []
         for p in range(tamanho_P):
-            periodo = list(range(valor, valor + Np[p]))
-            linha.append(periodo)
+            turno = list(range(valor, valor + Np[p]))
+            linha_dia.append(turno)
             valor += Np[p]
-        Sdp.append(linha)
+        Sdp.append(linha_dia)
+
     return Sdp
 
 
 def preencher_tud(Sdp):
-    """Último slot de cada dia = último elemento do último período daquele dia."""
+    """
+    Último horário de cada dia = último elemento do último turno daquele dia.
+    Sdp está indexado como Sdp[d][p].
+    """
     return [linha_dia[-1][-1] for linha_dia in Sdp]
 
 
 def preencher_tpdd(Sdp):
-    """Primeiro slot de cada dia = primeiro elemento do primeiro período daquele dia."""
+    """
+    Primeiro horário de cada dia = primeiro elemento do primeiro turno daquele dia.
+    Sdp está indexado como Sdp[d][p].
+    """
     return [linha_dia[0][0] for linha_dia in Sdp]
 
 
@@ -130,7 +143,7 @@ def lista_para_texto(lista, separadores=(";", ",", " ")):
 
 def formatar_passthrough(tipo, valor_bruto):
     """
-    Para variáveis que não entram em nenhum cálculo (ex.: lmax, hi, ij, ig):
+    Para variáveis que não entram em nenhum cálculo (ex.: lmax, np, hi, ij, ig):
     apenas relê o valor no formato correto e reescreve no padrão do CSV,
     sem alterar seu conteúdo.
     """
@@ -157,9 +170,13 @@ def formatar_passthrough(tipo, valor_bruto):
 # Programa principal
 # ---------------------------------------------------------------------------
 
-# Nomes brutos que só servem de entrada para calcular uma variável derivada.
-# Eles NUNCA aparecem no CSV final — servem só de "matéria-prima" de cálculo.
-NOMES_RAW_CONSUMIDOS = {"t", "d", "p", "g", "i", "j", "np"}
+# Nomes brutos que só servem de entrada para calcular uma variável derivada
+# de mesma "identidade" (ex.: t=20 -> T=[1..20]). Eles NUNCA aparecem no CSV
+# final — servem só de "matéria-prima" de cálculo.
+# OBS: 'np' NÃO entra aqui: ele é usado para calcular o Sdp, mas não é
+# "substituído" por uma versão maiúscula de si mesmo (como t->T), então
+# continua aparecendo no CSV final normalmente (feito via formatar_passthrough).
+NOMES_RAW_CONSUMIDOS = {"t", "d", "p", "g", "i", "j"}
 
 # Nomes das variáveis derivadas, tratadas à parte (nunca repassadas por
 # formatar_passthrough, para não duplicar no CSV final).
@@ -174,7 +191,7 @@ def processar_planilha(caminho_xlsx):
     linhas_saida = []
 
     # 1) Repassa (copia e formata) tudo que não é matéria-prima de cálculo
-    #    nem uma variável derivada (ex.: lmax, hi, ij, ig).
+    #    nem uma variável derivada (ex.: lmax, np, hi, ij, ig).
     for _, linha in df.iterrows():
         nome = linha["NOME"]
         if nome in NOMES_RAW_CONSUMIDOS or nome in NOMES_DERIVADOS:
@@ -208,7 +225,8 @@ def processar_planilha(caminho_xlsx):
         print(f"'Sd' calculado: {Sd}")
     linhas_saida.append({"NOME": "Sd", "TIPO": "vector_in_vector", "VALOR": lista_para_texto(Sd)})
 
-    # 4) Sdp (precisa de Np, se for calcular)
+    # 4) Sdp (precisa de Np, se for calcular) -> matriz D x P de vetores,
+    #    indexada como Sdp[d][p] (dia primeiro, turno depois).
     if existe_na_planilha(df, "Sdp"):
         Sdp = obter_vetor_de_vetores_de_vetores(df, "Sdp")
         print("'Sdp' já definido na planilha, copiando.")
@@ -218,7 +236,7 @@ def processar_planilha(caminho_xlsx):
         print(f"'Sdp' calculado: {Sdp}")
     linhas_saida.append({
         "NOME": "Sdp",
-        "TIPO": "matrix_in_vector",
+        "TIPO": "matrix_of_vector",
         "VALOR": lista_para_texto(Sdp),
     })
 

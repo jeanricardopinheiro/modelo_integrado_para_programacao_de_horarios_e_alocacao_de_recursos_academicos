@@ -1,86 +1,94 @@
 using JuMP
 using Gurobi
+using CSV
+using DataFrames
 
-function entrada_modelo()
-    #printf("digite o nome do arquivo para o modelo: ")
-    if isfile("modelo2teste.txt")
+function busca_de_arquivo()
+    print("Digite o nome do arquivo para o modelo: ")
+    nome_arquivo = readline()
+    caminho = "planilhas_csv/$nome_arquivo"
+    if isfile(caminho)
         println("arquivo encontrado")
     else
         println("arquivo nao encontrado")
-    exit()
+        exit()
     end 
+    return caminho;
 end
 
-function ler_parametros()
-    T = Int[]; #vetor
-    D = Int[]; #vetor
-    Sd = Vector{Vector{Int}}() #vetor de vetores
-    P = Int[]; #vetor
-    Sdp = Matrix{Vector{Int}}(undef,0,0) #matriz de vetores
-    G = Int[]; #vetor
-    n_prof = 0;
-    Ij = Vector{Vector{Int}}(); #vetor de vetores
-    Ig = Vector{Vector{Int}}() #vetor de vetores
-    Lmax = 0; #int
-    Np = Int[]; #vetor 
-    t_ud = Int[]; #vetor
-    t_pd = Int[]; #vetor
-    H_i = Int[]; #vetor
-    I = Int[]; #vetor
-    J = Int[]; #vetor
-    open("modelo2teste.txt", "r") do inputfile
-        linha_T = split(readline(inputfile));
-        T = parse.(Int, linha_T); #conjunto de todos os slots (horarios) t da semana
-        linha_D = split(readline(inputfile));
-        D = parse.(Int, linha_D); #conjunto de dias da semana
-        qtd_dias = length(D);
-        for d in 1:qtd_dias
-            linha_sd = split(readline(inputfile));
-            push!(Sd, parse.(Int, linha_sd)) #conjunto de horários que pertencem ao dia d
-        end
-        linha_P = split(readline(inputfile));
-        P = parse.(Int, linha_P); #conjunto de turnos p
-        qtd_turnos = length(P);
-        Sdp = Matrix{Vector{Int}}(undef, qtd_turnos, qtd_dias) #subconjunto de horários do dia d correspodentes ao turno p
-        for d in 1:qtd_dias
-            for p in 1:qtd_turnos
-                linha_sdp = split(readline(inputfile));
-                Sdp[p,d] = parse.(Int, linha_sdp) #horários do dia d que pertencem ao turno p
-            end
-        end
-        linha_G = split(readline(inputfile));
-        G = parse.(Int, linha_G); #conjunto de turmas g
-        n_prof = parse(Int, readline(inputfile)); #numero de professores
-        for j in 1:n_prof 
-            linha_ij = split(readline(inputfile))
-            push!(Ij, parse.(Int, linha_ij)) #subconjunto de unidades ministradas pelo professor j
-        end
-        qtd_turmas = length(G);
-        for g in 1:qtd_turmas
-            linha_ig = split(readline(inputfile));
-            push!(Ig, parse.(Int, linha_ig)) #subconjunto de unidades curriculares que a turma g cursa
-        end
-        Lmax = parse(Int, readline(inputfile)) #limite de aulas por dia para um professor
-        linha_Np = split(readline(inputfile));
-        Np = parse.(Int, linha_Np); #numero total de slots no turno p
-        linha_tud = split(readline(inputfile)); 
-        t_ud = parse.(Int, linha_tud); #incice do ultimo horário noturno do dia
-        linha_tpd = split(readline(inputfile));
-        t_pd = parse.(Int, linha_tpd); #indice do primeiro ho´rario matutino do prox dia
-        linha_Hi = split(readline(inputfile));
-        H_i = parse.(Int, linha_Hi); #carga horária semanal para a unidade curricular i
-        I = collect(1:length(H_i)); #conjunto de unidades curriculares
-        J = collect(1:length(Ij)); #conjunto de professores
-        println("H_i = ", H_i)
-        println("length(H_i) = ", length(H_i))
-        println("I = ", I)
-    end
+function ler_parametros(caminho)
+    dados = DataFrame(CSV.File(caminho))
+    valores = Dict{String, Any}()
 
-    return T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J;
+    for linha in eachrow(dados)
+
+        nome = String(linha.NOME)
+        tipo = linha.TIPO
+        valor = linha.VALOR
+
+        if tipo == "scalar"
+
+            valores[nome] = parse(Int, valor)
+
+        elseif tipo == "vector"
+
+            valores[nome] = parse.(Int, split(valor))
+
+        elseif tipo == "vector_in_vector"
+
+            valores[nome] = [
+                parse.(Int, split(parte))
+                for parte in split(valor, ';')
+            ]
+
+        elseif tipo == "matrix_of_vector"
+
+            linhas_str  = split(valor, ';')                      # cada linha = um dia
+            n_linhas    = length(linhas_str)                      # D
+            n_colunas   = length(split(linhas_str[1], ','))        # P
+
+            matriz = Matrix{Vector{Int}}(undef, n_linhas, n_colunas)
+
+            for (d, linha_str) in enumerate(linhas_str)
+                colunas_str = split(linha_str, ',')
+                for (p, elemento) in enumerate(colunas_str)
+                    matriz[d, p] = parse.(Int, split(elemento))
+                end
+            end
+
+            valores[nome] = matriz
+
+        else
+
+            error("Tipo desconhecido: $tipo")
+        end
+
+    end
+    println("lmax = ", valores["lmax"])
+    println("np = ", valores["np"])
+    println("hi = ", valores["hi"])
+    println("ij = ", valores["ij"])
+    println("ig = ", valores["ig"])
+    println("T = ", valores["T"])
+    println("D = ", valores["D"])
+    println("P = ", valores["P"])
+    println("G = ", valores["G"])
+    println("I = ", valores["I"])
+    println("J = ", valores["J"])
+    println("Sd = ", valores["Sd"])
+    println("Sdp = ", valores["Sdp"])
+    println("tud = ", valores["tud"])
+    println("tpdd = ", valores["tpdd"])
+
+
+    return valores["T"], valores["D"], valores["Sd"], valores["P"], valores["Sdp"],
+           valores["G"], valores["ij"], valores["ig"], valores["lmax"], valores["np"],
+           valores["tud"], valores["tpdd"], valores["hi"], valores["I"], valores["J"];
 
 end
 
 function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J)
+    caminho_lp = "arquivos_lp/modelo1_teste.lp"
     model = JuMP.Model(Gurobi.Optimizer)
     JuMP.set_silent(model)
 
@@ -107,11 +115,11 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i
 
     @constraint(model, [j in J,d in D] ,sum(v[j,t] for t in Sd[d]) <=Lmax)
 
-    @constraint(model, [j in J,d in D, p in P] ,sum(v[j,t] for t in Sdp[p,d]) <= Np[p] * z[j,d,p])
+    @constraint(model, [j in J, d in D, p in P],sum(v[j,t] for t in Sdp[d,p]) <= Np[p] * z[j,d,p])
 
     @constraint(model, [j in J,d in D] ,sum(z[j,d,p] for p in P) <= 2)
 
-    write_to_file(model, "modelo1_teste.lp")
+    write_to_file(model, caminho_lp)
 
     JuMP.optimize!(model)
 
@@ -139,10 +147,10 @@ end
 
 
 function main()
-    entrada_modelo();
-    T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd , H_i, I, J = ler_parametros();
+    caminho = busca_de_arquivo();
+    T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd , H_i, I, J = ler_parametros(caminho);
     estado, y = resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J);
     mostra_resultado(estado, y, T, I);
 end
 
-main()  
+main()
