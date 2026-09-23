@@ -1,11 +1,6 @@
 import os
 import pandas as pd
 
-
-# ---------------------------------------------------------------------------
-# Funções auxiliares de leitura da planilha
-# ---------------------------------------------------------------------------
-
 def limpar_texto(valor):
     """Remove espaços extras do valor lido da planilha."""
     return str(valor).strip()
@@ -50,10 +45,6 @@ def obter_vetor_de_vetores_de_vetores(df, nome):
 def existe_na_planilha(df, nome):
     return nome in df["NOME"].values
 
-
-# ---------------------------------------------------------------------------
-# Funções de cálculo das variáveis derivadas
-# ---------------------------------------------------------------------------
 
 def preencher_conjunto(df, nome_escalar):
     """
@@ -120,10 +111,6 @@ def preencher_tpdd(Sdp):
     return [linha_dia[0][0] for linha_dia in Sdp]
 
 
-# ---------------------------------------------------------------------------
-# Serialização de listas para caber numa célula de CSV
-# ---------------------------------------------------------------------------
-
 def lista_para_texto(lista, separadores=(";", ",", " ")):
     """
     Converte listas (com até 3 níveis de profundidade) em texto para caber
@@ -166,16 +153,6 @@ def formatar_passthrough(tipo, valor_bruto):
     return tipo, texto
 
 
-# ---------------------------------------------------------------------------
-# Programa principal
-# ---------------------------------------------------------------------------
-
-# Nomes brutos que só servem de entrada para calcular uma variável derivada
-# de mesma "identidade" (ex.: t=20 -> T=[1..20]). Eles NUNCA aparecem no CSV
-# final — servem só de "matéria-prima" de cálculo.
-# OBS: 'np' NÃO entra aqui: ele é usado para calcular o Sdp, mas não é
-# "substituído" por uma versão maiúscula de si mesmo (como t->T), então
-# continua aparecendo no CSV final normalmente (feito via formatar_passthrough).
 NOMES_RAW_CONSUMIDOS = {"t", "d", "p", "g", "i", "j"}
 
 # Nomes das variáveis derivadas, tratadas à parte (nunca repassadas por

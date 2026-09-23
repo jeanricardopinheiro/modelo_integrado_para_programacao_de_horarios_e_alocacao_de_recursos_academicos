@@ -1,0 +1,16 @@
+﻿NOME,TIPO,VALOR
+lmax,scalar,4
+np,vector,4
+hi,vector,2 2 2 2 2 3 3 3 3 3 3 4 4 4
+ij,vector_in_vector,1 2 6 7 12;3 8 9 10 11;4 5 13 14
+ig,vector_in_vector,1 2 3 6 7 12 13;4 5 8 9 10 11 14
+T,vector,1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+D,vector,1 2 3 4 5
+P,vector,1
+G,vector,1 2
+I,vector,1 2 3 4 5 6 7 8 9 10 11 12 13 14
+J,vector,1 2 3
+Sd,vector_in_vector,1 2 3 4;5 6 7 8;9 10 11 12;13 14 15 16;17 18 19 20
+Sdp,matrix_of_vector,1 2 3 4;5 6 7 8;9 10 11 12;13 14 15 16;17 18 19 20
+tud,vector,4 8 12 16 20
+tpdd,vector,1 5 9 13 17

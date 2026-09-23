@@ -105,19 +105,30 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i
     println("D = ", D)
     println("P = ", P)
 
-    @constraint(model, [i in I], sum(y[i,t] for t in T) == H_i[i])   #se G é um vetor e estamos interresados no que tem dentro devemos
+    @constraint(model, R_4[i in I], sum(y[i,t] for t in T) == H_i[i])   #se G é um vetor e estamos interresados no que tem dentro devemos
                                                                         #fazer g in G, se G for um valor ai sim g in 1:G
-    @constraint(model,[g in G, t in T] ,sum(y[i,t] for i in Ig[g]) <=1)
+    @constraint(model,R_5[g in G, t in T] ,sum(y[i,t] for i in Ig[g]) <=1)
 
-    @constraint(model, [j in J,t in T] ,sum(y[i,t] for i in Ij[j]) == v[j,t])
+    @constraint(model, R_6[j in J,t in T] ,sum(y[i,t] for i in Ij[j]) == v[j,t])
 
-    @constraint(model, [j in J,t in T] ,v[j,t]<=1)
+    @constraint(model, R_7[j in J,t in T] ,v[j,t]<=1)
 
-    @constraint(model, [j in J,d in D] ,sum(v[j,t] for t in Sd[d]) <=Lmax)
+    @constraint(model, R_8[j in J,d in D] ,sum(v[j,t] for t in Sd[d]) <=Lmax)
 
-    @constraint(model, [j in J, d in D, p in P],sum(v[j,t] for t in Sdp[d,p]) <= Np[p] * z[j,d,p])
+    @constraint(model, R_9[j in J,d in D[1:end-1]] ,(v[j,t_ud[d]])+(v[j,t_pd[d]])<=1)
 
-    @constraint(model, [j in J,d in D] ,sum(z[j,d,p] for p in P) <= 2)
+    #=adicionando restrições=#
+    @constraint(model, R_9_1[j in J,d in D[1:end-1]] ,(v[j,t_ud[d]-1])+(v[j,t_pd[d]])<=1)
+
+    @constraint(model, R_9_2[j in J,d in D[1:end-1]] ,(v[j,t_ud[d]])+(v[j,t_pd[d]+1])<=1)
+
+
+    #==#
+
+    @constraint(model, R_10[j in J, d in D, p in P],sum(v[j,t] for t in Sdp[d,p]) <= Np[p] * z[j,d,p])
+
+    @constraint(model, R_11[j in J,d in D] ,sum(z[j,d,p] for p in P) <= 2)
+
 
     write_to_file(model, caminho_lp)
 
@@ -128,21 +139,31 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i
     return status, y;
 end
 
-function mostra_resultado(status, y, T, I)
-    if status == MOI.OPTIMAL || status == MOI.FEASIBLE_POINT
-    y_opt = JuMP.value.(y)
-    println("\nAlocação dos horários:")
-    for i in I
-        for t in T
-            if y_opt[i, t] > 0.5  # Se a variável binária for 1
-                println("no horário $t a unidade $i ocorre")
+ function mostra_resultado(status, y, T, I, J,Ij)
+        if status == MOI.OPTIMAL || status == MOI.FEASIBLE_POINT
+        y_opt = JuMP.value.(y)
+        println("\nAlocação dos horários:")
+            for i in I
+                for t in T
+                    if y_opt[i, t] == 1
+                        prof =0;
+                        for a in eachindex(Ij)
+                            vet = Int[];
+                            vet = Ij[a];
+                            for b in eachindex(vet)
+                                if vet[b] == i
+                                    prof = a;
+                                    println("no horário $t a unidade $i ocorre ministrada por $prof")
+                                end
+                            end
+                        end
+                    end
+                end
             end
+        else
+            println("Nenhuma solução viável foi encontrada.")  
         end
     end
-    else
-        println("Nenhuma solução viável foi encontrada.")  
-    end
-end
 
 
 
@@ -150,7 +171,7 @@ function main()
     caminho = busca_de_arquivo();
     T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd , H_i, I, J = ler_parametros(caminho);
     estado, y = resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J);
-    mostra_resultado(estado, y, T, I);
+    mostra_resultado(estado, y, T, I,J,Ij);
 end
 
 main()
