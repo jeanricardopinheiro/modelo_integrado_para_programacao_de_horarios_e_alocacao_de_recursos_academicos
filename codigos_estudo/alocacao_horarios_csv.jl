@@ -4,16 +4,30 @@ using CSV
 using DataFrames
 
 function busca_de_arquivo()
+    pasta = "planilhas_csv"
+    if isdir(pasta)
+        arquivos = readdir(pasta)
+        println("Arquivos disponíveis na pasta '$pasta':")
+        for arquivo in arquivos
+            println(" - ", arquivo)
+        end
+        println("-" ^ 30)
+    else
+        println("A pasta '$pasta' não foi encontrada.")
+        exit()
+    end
+
     print("Digite o nome do arquivo para o modelo: ")
     nome_arquivo = readline()
-    caminho = "planilhas_csv/$nome_arquivo"
+    caminho = joinpath(pasta, nome_arquivo)
     if isfile(caminho)
-        println("arquivo encontrado")
+        println("Arquivo encontrado!")
     else
-        println("arquivo nao encontrado")
+        println("Arquivo não encontrado.")
         exit()
     end 
-    return caminho;
+    
+    return caminho
 end
 
 function ler_parametros(caminho)
@@ -88,7 +102,7 @@ function ler_parametros(caminho)
 end
 
 function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J)
-    caminho_lp = "arquivos_lp/modelo1_teste.lp"
+    caminho_lp = "arquivos_lp/aloc_horarios_lp.lp"
     model = JuMP.Model(Gurobi.Optimizer)
     JuMP.set_silent(model)
 
@@ -121,8 +135,6 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i
     @constraint(model, R_9_1[j in J,d in D[1:end-1]] ,(v[j,t_ud[d]-1])+(v[j,t_pd[d]])<=1)
 
     @constraint(model, R_9_2[j in J,d in D[1:end-1]] ,(v[j,t_ud[d]])+(v[j,t_pd[d]+1])<=1)
-
-
     #==#
 
     @constraint(model, R_10[j in J, d in D, p in P],sum(v[j,t] for t in Sdp[d,p]) <= Np[p] * z[j,d,p])
@@ -135,43 +147,60 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i
     JuMP.optimize!(model)
 
     status = JuMP.termination_status(model)
-    println("\nStatus da Solucao: ", status)
-    return status, y;
+    primal = JuMP.primal_status(model)
+    println("\nStatus da Solucao: ", status, " (primal: ", primal, ")")
+    return status, primal, y;
 end
 
- function mostra_resultado(status, y, T, I, J,Ij)
-        if status == MOI.OPTIMAL || status == MOI.FEASIBLE_POINT
+function mostra_resultado(status, primal, y, D, Sd, G, Ij, Ig, I)
+    if primal == MOI.FEASIBLE_POINT
+        if status != MOI.OPTIMAL
+            println("Atenção: o solver parou com status $status; a solução abaixo é viável, mas pode não ser ótima.")
+        end
         y_opt = JuMP.value.(y)
-        println("\nAlocação dos horários:")
-            for i in I
-                for t in T
-                    if y_opt[i, t] == 1
-                        prof =0;
-                        for a in eachindex(Ij)
-                            vet = Int[];
-                            vet = Ij[a];
-                            for b in eachindex(vet)
-                                if vet[b] == i
-                                    prof = a;
-                                    println("no horário $t a unidade $i ocorre ministrada por $prof")
-                                end
-                            end
-                        end
-                    end
+
+        # professores de cada unidade (pode haver mais de um)
+        profs_unidade = Dict(i => [j for j in eachindex(Ij) if i in Ij[j]] for i in I)
+
+        # texto da célula: unidade/professor(es) que a turma g tem no horário t
+        function celula(g, t)
+            for i in Ig[g]
+                if y_opt[i, t] > 0.5
+                    return "U$i/P" * join(profs_unidade[i], "+P")
                 end
             end
-        else
-            println("Nenhuma solução viável foi encontrada.")  
+            return "-"
         end
+
+        println("\nAlocação dos horários (U = unidade, P = professor)")
+        n_slots = maximum(length(Sd[d]) for d in D)
+        larg_rot = maximum(length("Dia $d") for d in D)
+
+        for g in G
+            tabela = [k <= length(Sd[d]) ? celula(g, Sd[d][k]) : "" for d in D, k in 1:n_slots]
+            cab = ["Slot $k" for k in 1:n_slots]
+            larg = max(maximum(length.(tabela)), maximum(length.(cab)))
+
+            println("\nTurma $g")
+            println(rpad("", larg_rot), " | ", join([rpad(c, larg) for c in cab], " | "))
+            println(repeat("-", larg_rot + 3 + n_slots * larg + 3 * (n_slots - 1)))
+            for (r, d) in enumerate(D)
+                println(rpad("Dia $d", larg_rot), " | ",
+                        join([rpad(tabela[r, k], larg) for k in 1:n_slots], " | "))
+            end
+        end
+    else
+        println("Nenhuma solução viável foi encontrada (status: $status).")
     end
+end
 
 
 
 function main()
     caminho = busca_de_arquivo();
     T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd , H_i, I, J = ler_parametros(caminho);
-    estado, y = resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J);
-    mostra_resultado(estado, y, T, I,J,Ij);
+    estado, primal, y = resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, t_ud, t_pd, H_i, I, J);
+    mostra_resultado(estado, primal, y, D, Sd, G, Ij, Ig, I);
 end
 
 main()

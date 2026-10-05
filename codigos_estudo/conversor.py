@@ -97,18 +97,20 @@ def preencher_Sdp(tamanho_D, tamanho_P, Np):
 
 def preencher_tud(Sdp):
     """
-    Último horário de cada dia = último elemento do último turno daquele dia.
-    Sdp está indexado como Sdp[d][p].
+    tud[d] = índice do último horário (último turno, ex.: noturno) do dia d.
+    Sdp está indexado como Sdp[d][p]. Um dia por posição (D elementos).
     """
     return [linha_dia[-1][-1] for linha_dia in Sdp]
 
 
 def preencher_tpdd(Sdp):
     """
-    Primeiro horário de cada dia = primeiro elemento do primeiro turno daquele dia.
-    Sdp está indexado como Sdp[d][p].
+    tpdd[d] = índice do primeiro horário (primeiro turno, ex.: matutino) do
+    dia SEGUINTE a d (d+1). Por isso só existem D-1 elementos: o último dia
+    não tem "dia seguinte". Sdp está indexado como Sdp[d][p].
+    Ex.: T=20, D=5, Np=[4] -> tud = [4, 8, 12, 16, 20], tpdd = [5, 9, 13, 17]
     """
-    return [linha_dia[0][0] for linha_dia in Sdp]
+    return [linha_dia[0][0] for linha_dia in Sdp[1:]]
 
 
 def lista_para_texto(lista, separadores=(";", ",", " ")):
