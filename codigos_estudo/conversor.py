@@ -155,11 +155,11 @@ def formatar_passthrough(tipo, valor_bruto):
     return tipo, texto
 
 
-NOMES_RAW_CONSUMIDOS = {"t", "d", "p", "g", "i", "j"}
+NOMES_RAW_CONSUMIDOS = {"t", "d", "p", "g", "i", "j", "k"}
 
 # Nomes das variáveis derivadas, tratadas à parte (nunca repassadas por
 # formatar_passthrough, para não duplicar no CSV final).
-NOMES_DERIVADOS = {"T", "D", "P", "G", "I", "J", "Sd", "Sdp", "tud", "tpdd"}
+NOMES_DERIVADOS = {"T", "D", "P", "G", "I", "J", "K", "Sd", "Sdp", "tud", "tpdd"}
 
 
 def processar_planilha(caminho_xlsx):
@@ -170,7 +170,7 @@ def processar_planilha(caminho_xlsx):
     linhas_saida = []
 
     # 1) Repassa (copia e formata) tudo que não é matéria-prima de cálculo
-    #    nem uma variável derivada (ex.: lmax, np, hi, ij, ig).
+    #    nem uma variável derivada (ex.: lmax, np, hi, ij, ig, ki, qk, vi).
     for _, linha in df.iterrows():
         nome = linha["NOME"]
         if nome in NOMES_RAW_CONSUMIDOS or nome in NOMES_DERIVADOS:
@@ -179,8 +179,8 @@ def processar_planilha(caminho_xlsx):
         linhas_saida.append({"NOME": nome, "TIPO": tipo_formatado, "VALOR": valor_formatado})
 
     # 2) T, D, P, G, I, J: usa o que já existir na planilha, senão calcula
-    #    a partir do escalar correspondente (t, d, p, g, i, j).
-    conjuntos = {"T": "t", "D": "d", "P": "p", "G": "g", "I": "i", "J": "j"}
+    #    a partir do escalar correspondente (t, d, p, g, i, j, k).
+    conjuntos = {"T": "t", "D": "d", "P": "p", "G": "g", "I": "i", "J": "j", "K": "k"}
     valores = {}
     for nome_conjunto, nome_escalar in conjuntos.items():
         if existe_na_planilha(df, nome_conjunto):
