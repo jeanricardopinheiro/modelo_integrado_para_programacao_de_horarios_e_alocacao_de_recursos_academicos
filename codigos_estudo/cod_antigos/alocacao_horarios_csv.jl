@@ -5,7 +5,7 @@ using DataFrames
 #import MathOptInterface as MOI
 
 function busca_de_arquivo()
-    pasta = "planilhas_csv"
+    pasta = "planilhas_drive"
     if isdir(pasta)
         arquivos = readdir(pasta)
         println("Arquivos disponíveis na pasta '$pasta':")
@@ -84,33 +84,38 @@ function ler_parametros(caminho)
     println("hi = ", valores["hi"])
     println("ij = ", valores["ij"])
     println("ig = ", valores["ig"])
-    println("T = ", valores["T"])
-    println("D = ", valores["D"])
-    println("P = ", valores["P"])
-    println("G = ", valores["G"])
-    println("I = ", valores["I"])
-    println("J = ", valores["J"])
-    println("Sd = ", valores["Sd"])
-    println("Sdp = ", valores["Sdp"])
+    println("t = ", valores["t"])
+    println("d = ", valores["d"])
+    println("p = ", valores["p"])
+    println("g = ", valores["g"])
+    println("i = ", valores["i"])
+    println("j = ", valores["j"])
+    println("sd = ", valores["sd"])
+    println("sdp = ", valores["sdp"])
     println("tud = ", valores["tud"])
     println("tpdd = ", valores["tpdd"])
     #=novos conjuntos a serem adicionados=#
-    println("K = ", valores["K"])
+    println("k = ", valores["k"])
     println("ki = ", valores["ki"])
     println("vi = ", valores["vi"])
     println("qk = ", valores["qk"])
 
 
-    return valores["T"], valores["D"], valores["Sd"], valores["P"], valores["Sdp"],
-           valores["G"], valores["ij"], valores["ig"], valores["lmax"], valores["np"],
-           valores["tud"], valores["tpdd"], valores["hi"], valores["I"], valores["J"],
-           valores["K"],valores["ki"],valores["vi"],valores["qk"];
+    return valores["t"], valores["d"], valores["sd"], valores["p"], valores["sdp"],
+           valores["g"], valores["ij"], valores["ig"], valores["lmax"], valores["np"],
+           valores["tud"], valores["tpdd"], valores["hi"], valores["i"], valores["j"],
+           valores["k"],valores["ki"],valores["vi"],valores["qk"];
 
 end
 
-function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, tud, tpdd, H_i, I, J, K, K_i, V_i, Q_k)
+function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, Tud, Tpdd, Hi, I, J, K, Ki, Vi, Qk)
     caminho_lp = "arquivos_lp/aloc_horarios_lp.lp"
     model = JuMP.Model(Gurobi.Optimizer)
+
+    #=adicionando possibilidade de multiplas soluções=#
+    set_attribute(model, "PoolSearchMode", 2) #foco em soluções distintas
+    set_attribute(model, "PoolSolutions", 5) #numero máximo de soluções distintas
+
     JuMP.set_silent(model)
 
     @variable(model, y[I ,T],Bin)
@@ -128,9 +133,9 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, tud, tpdd, H_i,
     println("D = ", D)
     println("P = ", P)
     println("K = ", K)
-    println("K_i = ", K_i)
-    println("V_i = ", V_i)
-    println("Q_k = ", Q_k)
+    println("K_i = ", Ki)
+    println("V_i = ", Vi)
+    println("Q_k = ", Qk)
 
     @constraint(model, R_4[i in I], sum(y[i,t] for t in T) == H_i[i])   #se G é um vetor e estamos interresados no que tem dentro devemos
                                                                         #fazer g in G, se G for um valor ai sim g in 1:G
@@ -145,18 +150,18 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, tud, tpdd, H_i,
     #@constraint(model, R_9[j in J,d in D[1:end-1]] ,(v[j,tud[d]])+(v[j,tpdd[d]])<=1) # jornada de descanso minimo (descartável?)
 
     #=adicionando restrições de tempo de descanso=#
-    @constraint(model, R_9_1[j in J,d in D[1:end-1]] ,(v[j,tud[d]-1])+(v[j,tpdd[d]])<=1) #(1) penultimo e primeiro
+    @constraint(model, R_9_1[j in J,d in D[1:end-1]] ,(v[j,Tud[d]-1])+(v[j,Tpdd[d]])<=1) #(1) penultimo e primeiro
 
-    @constraint(model, R_9_2[j in J,d in D[1:end-1]] ,(v[j,tud[d]])+(v[j,tpdd[d]])<=1) #(2) ultimo e primeiro
+    @constraint(model, R_9_2[j in J,d in D[1:end-1]] ,(v[j,Tud[d]])+(v[j,Tpdd[d]])<=1) #(2) ultimo e primeiro
 
-    @constraint(model, R_9_3[j in J,d in D[1:end-1]] ,(v[j,tud[d]])+(v[j,tpdd[d]+1])<=1) #(3) ultimo e segundo
+    @constraint(model, R_9_3[j in J,d in D[1:end-1]] ,(v[j,Tud[d]])+(v[j,Tpdd[d]+1])<=1) #(3) ultimo e segundo
     #==#
 
     @constraint(model, R_10[j in J, d in D, p in P],sum(v[j,t] for t in Sdp[d,p]) <= Np[p] * z[j,d,p])
 
     @constraint(model, R_11[j in J,d in D] ,sum(z[j,d,p] for p in P) <= 2)
 
-    @constraint(model, R_12[i in I,k in K, t in T] ,V_i[i]*w[i,k,t] <= Q_k[k])
+    @constraint(model, R_12[i in I,k in K, t in T] ,V_i[i]*w[i,k,t] <= Qk[k])
 
     @constraint(model, R_13[k in K,t in T] ,sum(w[i,k,t] for i in I) <= 1)
 
@@ -168,16 +173,32 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, tud, tpdd, H_i,
     
     @constraint(model, R_16[j in J,t in T] ,v[j,t] <= 1)
 
-    @constraint(model, R_17[i in I, k in K, t in T; !(k in K_i[i])], w[i,k,t] == 0) #nao existe 'not' entao tem que usar o !
+    K_nao = [Int64[] for k in K]
+
+    for k in K
+        for i in I
+            if !(i in Ki[k])
+                push!(K_nao[k], i)
+            end
+        end
+    end
+
+    println("Ki   = ", Ki)
+    println("K_nao = ", K_nao)
+
+    @constraint(model, R_17[k in K, i in K_nao[k], t in T], w[i,k,t] == 0)
 
     write_to_file(model, caminho_lp)
 
     JuMP.optimize!(model)
 
+    num_solucoes = result_count(model)
+    println("encontradas $num_solucoes soluções")
+
     status = JuMP.termination_status(model)
     primal = JuMP.primal_status(model)
     println("\nStatus da Solucao: ", status, " (primal: ", primal, ")")
-    return status, primal, w;
+    return status, primal, w, num_solucoes;
 end
 
 
@@ -243,9 +264,12 @@ end
 
 function main()
     caminho = busca_de_arquivo();
-    T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, tud, tpdd , H_i, I, J, K, K_i, V_i, Q_k = ler_parametros(caminho);
-    estado, primal, w = resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, tud, tpdd, H_i, I, J, K, K_i, V_i, Q_k);
-    mostra_resultado(estado, primal, w, D, Sd, G, Ij, Ig, I , K);
+    T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, Tud, Tpdd , Hi, I, J, K, Ki, Vi, Qk = ler_parametros(caminho);
+    estado, primal, w, num_solucoes = resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, Tud, Tpdd, Hi, I, J, K, Ki, Vi, Qk);
+    for cont in 1:num_solucoes
+        valor_atual = value.(w, result = cont)
+        mostra_resultado(estado, primal, valor_atual, D, Sd, G, Ij, Ig, I , K);
+    end
 end
 
 main()
