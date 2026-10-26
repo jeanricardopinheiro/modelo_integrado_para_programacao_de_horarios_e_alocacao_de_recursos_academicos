@@ -2,6 +2,38 @@ import os
 import requests
 
 from datetime import datetime
+from pathlib import Path
+
+def selecionar_pasta(diretorio_atual="."):
+    caminho = Path(diretorio_atual).resolve()
+
+    while True:
+        print(f"\nPasta atual: {caminho}")
+
+        # Lista apenas subpastas
+        subpastas = [d for d in caminho.iterdir() if d.is_dir()]
+
+        # Exibe opções básicas
+        print("0: [ Selecionar esta pasta ]")
+        print("1: [ Voltar / Pasta acima ]")
+        for i, pasta in enumerate(subpastas, start=2):
+            print(f"{i}: {pasta.name}")
+
+        try:
+            escolha = int(input("\nDigite o número: "))
+
+            if escolha == 0:
+                return str(caminho)
+            elif escolha == 1:
+                caminho = caminho.parent
+            elif 2 <= escolha < len(subpastas) + 2:
+                # Entra na subpasta e continua o loop
+                caminho = subpastas[escolha - 2]
+            else:
+                print("Opção inválida.")
+        except ValueError:
+            print("Digite apenas números.")
+
 
 #colocar o URL da página 
 #https://docs.google.com/spreadsheets/d/1E_H_YNE5hjf5Fq9Yr0QEZ1g1gthpkQDFkbj4IsVQpos/edit?gid=1307573813#gid=1307573813
@@ -11,7 +43,6 @@ SPREADSHEET_ID = "1E_H_YNE5hjf5Fq9Yr0QEZ1g1gthpkQDFkbj4IsVQpos"
 GID = "1307573813"  # O número do #gid= no final da URL da aba (no meu caso a aba 'dados')
 
 # 2. Configurações de Destino no Computador
-pasta_destino = r"C:\Users\jeanr\OneDrive - Instituto Federal de Santa Catarina\JEAN - IFSC\projeto_de_pesquisa_scheduling\project_uct\codigos_estudo\planilhas_drive"
 
 #define nome padrão como uma string da data hora atual
 nome_padrao = datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
@@ -24,6 +55,8 @@ if not nome_csv.lower().endswith(".csv"):
     nome_csv += ".csv"
 
 #NOME_ARQUIVO = "minha_aba.csv"
+
+pasta_destino = selecionar_pasta()
 
 # Monta o URL de exportação do Google Sheets
 url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv&gid={GID}"
