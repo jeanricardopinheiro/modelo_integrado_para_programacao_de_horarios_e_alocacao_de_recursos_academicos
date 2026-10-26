@@ -16,7 +16,6 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, Tud, Tpdd, Hi, 
     @variable(model, z[J , D, P],Bin)
     @variable(model, w[I , K, T],Bin)
 
-
     println("I = ", I)
     println("T = ", T)
     println("G = ", G)

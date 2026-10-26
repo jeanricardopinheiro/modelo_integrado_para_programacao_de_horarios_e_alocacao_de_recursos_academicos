@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Agenda</title>
+  <link rel="stylesheet" href="lib/jsuites.css">
+  <link rel="stylesheet" href="lib/jspreadsheet.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="lib/jsuites.js"></script>
+  <script src="lib/formula.js"></script>
+  <script src="lib/model_formulas.js"></script>
+  <script src="lib/jspreadsheet.js"></script>
+</head>
+<body>
+  <nav>
+    <button class="aba ativa" data-alvo="menu-principal">Menu</button>
+    <button class="aba" data-alvo="painel-planilha">Planilha</button>
+    <button class="aba" data-alvo="painel-info">Informações</button>
+  </nav>
+
+  <section id="menu-principal" class="painel visivel">
+    <h2>Menu do programa</h2>
+    <p id="info-menu">carregando...</p>
+    <button id="btn-atualizar-menu">Atualizar</button>
+  </section>
+
+  <section id="painel-planilha" class="painel">
+    <div id="planilha"></div>
+    <button id="btn-exportar">Exportar CSV</button>
+  </section>
+
+  <section id="painel-info" class="painel">
+    <h2>Dados do programa</h2>
+    <p id="info-texto">carregando...</p>
+    <button id="btn-atualizar">Atualizar</button>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
