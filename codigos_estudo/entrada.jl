@@ -125,31 +125,32 @@ function ler_parametros(caminho)
         end
 
     end
-    println("lmax = ", valores["lmax"])
-    println("np = ", valores["np"])
-    println("hi = ", valores["hi"])
-    println("ij = ", valores["ij"])
-    println("ig = ", valores["ig"])
-    println("t = ", valores["t"])
-    println("d = ", valores["d"])
+
     println("p = ", valores["p"])
+    println("u = ", valores["u"])
     println("g = ", valores["g"])
-    println("i = ", valores["i"])
-    println("j = ", valores["j"])
-    println("sd = ", valores["sd"])
-    println("sdp = ", valores["sdp"])
-    println("tud = ", valores["tud"])
-    println("tpdd = ", valores["tpdd"])
-    #=novos conjuntos a serem adicionados=#
-    println("k = ", valores["k"])
-    println("ki = ", valores["ki"])
-    println("vi = ", valores["vi"])
-    println("qk = ", valores["qk"])
+    println("s = ", valores["s"])
+    println("d = ", valores["d"])
+    println("h = ", valores["h"])
+    println("t = ", valores["t"])
+    println("gt = ", valores["gi"])
+    println("hd = ", valores["hd"])
+    println("hdt = ", valores["hd"])
+    println("up = ", valores["up"])
+    println("ug = ", valores["ug"])
+    println("ut = ", valores["ut"])
+    println("s = ", valores["s"])
+    println("su = ", valores["su"])
+    println("lmax = ", valores["lmax"])
+    println("nt = ", valores["nt"])
+    println("hld = ", valores["hld"])
+    println("hfd1 = ", valores["hfd1"])
+    println("vu = ", valores["vu"])
+    println("qs = ", valores["qs"])
 
-
-    return valores["t"], valores["d"], valores["sd"], valores["p"], valores["sdp"],
-           valores["g"], valores["ij"], valores["ig"], valores["lmax"], valores["np"],
-           valores["tud"], valores["tpdd"], valores["hi"], valores["i"], valores["j"],
-           valores["k"],valores["ki"],valores["vi"],valores["qk"];
+    return valores["p"], valores["u"], valores["g"], valores["s"], valores["d"],
+           valores["h"], valores["t"], valores["gt"], valores["hd"], valores["hdt"], valores["up"],
+           valores["ug"], valores["ut"], valores["s"], valores["su"], valores["lmax"],
+           valores["nt"], valores["hld"], valores["hfd1"], valores["vu"], valores["qs"];
 
 end

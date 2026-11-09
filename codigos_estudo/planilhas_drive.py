@@ -38,9 +38,21 @@ def selecionar_pasta(diretorio_atual="."):
 #colocar o URL da página 
 #https://docs.google.com/spreadsheets/d/1E_H_YNE5hjf5Fq9Yr0QEZ1g1gthpkQDFkbj4IsVQpos/edit?gid=1307573813#gid=1307573813
 
+# URL DE TESTES
+#https://docs.google.com/spreadsheets/d/17V8nJ-YLEuovTlyMAUSEIQ6DjhLIaWzkptNpQbkxNps/edit?gid=1307573813#gid=1307573813
+
+
+escolha_drive = int(input("\nDigite '0' para drive oficial e '1' para drive de testes: "))
+if escolha_drive == 0:
+    SPREADSHEET_ID = "1E_H_YNE5hjf5Fq9Yr0QEZ1g1gthpkQDFkbj4IsVQpos"
+    GID = "1307573813"  # O número do #gid= no final da URL da aba (no meu caso a aba 'dados')
+else:
+    SPREADSHEET_ID = "17V8nJ-YLEuovTlyMAUSEIQ6DjhLIaWzkptNpQbkxNps"
+    GID = "1307573813"  # O número do #gid= no final da URL da aba (no meu caso a aba 'dados')
+
 # 1. Configurações da Planilha
-SPREADSHEET_ID = "1E_H_YNE5hjf5Fq9Yr0QEZ1g1gthpkQDFkbj4IsVQpos"
-GID = "1307573813"  # O número do #gid= no final da URL da aba (no meu caso a aba 'dados')
+#SPREADSHEET_ID = "1E_H_YNE5hjf5Fq9Yr0QEZ1g1gthpkQDFkbj4IsVQpos"
+#GID = "1307573813"  # O número do #gid= no final da URL da aba (no meu caso a aba 'dados')
 
 # 2. Configurações de Destino no Computador
 

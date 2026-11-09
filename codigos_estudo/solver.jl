@@ -1,7 +1,8 @@
 using JuMP
 using Gurobi
+include("salvateste.jl")
 
-function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, Tud, Tpdd, Hi, I, J, K, Ki, Vi, Qk)
+function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, S, Su, Lmax, Nt, hld, hfd1, Vu, Qs)
     caminho_lp = "arquivos_lp/aloc_horarios_lp.lp"
     model = JuMP.Model(Gurobi.Optimizer)
 
@@ -11,84 +12,117 @@ function resolucao_modelo(T, D, Sd, P, Sdp, G, Ij, Ig, Lmax, Np, Tud, Tpdd, Hi, 
 
     JuMP.set_silent(model)
 
-    @variable(model, y[I ,T],Bin)
-    @variable(model, v[J ,T],Bin)
-    @variable(model, z[J , D, P],Bin)
-    @variable(model, w[I , K, T],Bin)
+    @variable(model, y[U ,H],Bin)
+    @variable(model, v[P ,H],Bin)
+    @variable(model, z[P , D, T],Bin)
+    @variable(model, w[U , S, H],Bin)
 
-    println("I = ", I)
-    println("T = ", T)
-    println("G = ", G)
-    println("Ig = ", Ig)
-    println("Ij = ", Ij)
-    println("J = ", J)
-    println("D = ", D)
     println("P = ", P)
-    println("K = ", K)
-    println("Ki = ", Ki)
-    println("Vi = ", Vi)
-    println("Qk = ", Qk)
+    println("U = ", U)
+    println("G = ", G)
+    println("S = ", S)
+    println("D = ", D)
+    println("H = ", H)
+    println("T = ", T)
+    println("Gt = ", Gt)
+    println("Hd = ", Hd)
+    println("Hdt = ", Hdt)
+    println("Up = ", Up)
+    println("Ug = ", Ug)
+    println("Ut = ", Ut)
+    println("S = ", S)
+    println("Su = ", Su)
+    println("Lmax = ", Lmax)
+    println("Nt = ", Nt)
+    println("hld = ", hld)
+    println("hfd1 = ", hfd1)
+    println("Vu = ", Vu)
+    println("Qs = ", Qs)
 
-    @constraint(model, R_4[i in I], sum(y[i,t] for t in T) == Hi[i])   #se G é um vetor e estamos interresados no que tem dentro devemos
+    @constraint(model, R_1[u in U], sum(y[u,h] for h in H) == Hu[u])   #se G é um vetor e estamos interresados no que tem dentro devemos
                                                                         #fazer g in G, se G for um valor ai sim g in 1:G
-    @constraint(model,R_5[g in G, t in T] ,sum(y[i,t] for i in Ig[g]) <=1)
+    @constraint(model,R_2[g in G, h in H] ,sum(y[u,h] for u in Ug[u]) <=1)
 
-    @constraint(model, R_6[j in J,t in T] ,sum(y[i,t] for i in Ij[j]) == v[j,t])
+    @constraint(model, R_3[p in P,h in H] ,sum(y[u,h] for p in Up[p]) == v[p,h])
 
-    @constraint(model, R_7[j in J,t in T] ,v[j,t]<=1)
+    @constraint(model, R_4[p in P,h in H] ,v[p,h]<=1)
 
-    @constraint(model, R_8[j in J,d in D] ,sum(v[j,t] for t in Sd[d]) <=Lmax)
+    @constraint(model, R_5[p in P,d in D] ,sum(v[p,h] for h in Hd[h]) <=Lmax)
+
+    #=adicionando restrições de tempo de descanso=#
+    @constraint(model, R_6[p in P,d in D[1:end-1]] ,(v[p,hld[d]])+(v[p,hfd1[d]])<=1) #(2) ultimo e primeiro
+
+    @constraint(model, R_7[p in P,d in D[1:end-1]] ,(v[p,hld[d]-1])+(v[p,hfd1[d]])<=1) #(1) penultimo e primeiro
+
+    @constraint(model, R_8[p in P,d in D[1:end-1]] ,(v[p,hld[d]])+(v[p,hfd1[d]+1])<=1) #(3) ultimo e segundo
+    #==#
 
     #@constraint(model, R_9[j in J,d in D[1:end-1]] ,(v[j,tud[d]])+(v[j,tpdd[d]])<=1) # jornada de descanso minimo (descartável?)
 
-    #=adicionando restrições de tempo de descanso=#
-    @constraint(model, R_9_1[j in J,d in D[1:end-1]] ,(v[j,Tud[d]-1])+(v[j,Tpdd[d]])<=1) #(1) penultimo e primeiro
+    @constraint(model, R_9[p in P, d in D, t in T],sum(v[p,h] for h in Hdt[p,h]) <= ( Nt[t] * z[p,d,t] ) )
 
-    @constraint(model, R_9_2[j in J,d in D[1:end-1]] ,(v[j,Tud[d]])+(v[j,Tpdd[d]])<=1) #(2) ultimo e primeiro
+    @constraint(model, R_10[p in P,d in D] ,sum(z[p,d,t] for t in t) <= 2)
 
-    @constraint(model, R_9_3[j in J,d in D[1:end-1]] ,(v[j,Tud[d]])+(v[j,Tpdd[d]+1])<=1) #(3) ultimo e segundo
-    #==#
+    #constraint(model, R_11[p in P] , sum(sum(v[p,h] for h in Hd[h]) for d in D[d]) == sum(H[u] for u in Up[u])) (dispensável)
 
-    @constraint(model, R_10[j in J, d in D, p in P],sum(v[j,t] for t in Sdp[d,p]) <= Np[p] * z[j,d,p])
+    @constraint(model, R_12[u in U,s in s, h in H] ,Vu[u]*w[u,s,h] <= Qs[s])
 
-    @constraint(model, R_11[j in J,d in D] ,sum(z[j,d,p] for p in P) <= 2)
+    @constraint(model, R_13[s in S,h in H] ,sum(w[u,s,h] for u in U) <= 1)
 
-    @constraint(model, R_12[i in I,k in K, t in T] ,V_i[i]*w[i,k,t] <= Qk[k])
-
-    @constraint(model, R_13[k in K,t in T] ,sum(w[i,k,t] for i in I) <= 1)
-
-    @constraint(model, R_14[g in G,t in T] ,sum(sum(w[i,k,t] for k in K) for i in Ig[g]) <= 1)
+    @constraint(model, R_14[g in G,h in H] ,sum(sum(w[u,s,h] for s in S) for u in Ug[u]) <= 1)
 
     #=novas restricoes 06-10=#
 
-    @constraint(model, R_15[j in J,t in T] ,sum(sum(w[i,k,t] for k in K) for i in Ij[j]) == v[j,t])
+    @constraint(model, R_15[p in P,h in H] ,sum(sum(w[u,s,h] for s in s) for u in Up[u]) == v[p,h])
     
-    @constraint(model, R_16[j in J,t in T] ,v[j,t] <= 1)
+    @constraint(model, R_16[p in P,h in H] ,v[p,h] <= 1)
 
-    K_nao = [Int64[] for k in K]
+    S_nao = [Int64[] for s in S]
 
-    for k in K
-        for i in I
-            if !(i in Ki[k])
-                push!(K_nao[k], i)
+    for s in S
+        for u in U
+            if !(u in Su[u])
+                push!(S_nao[k], u)
             end
         end
     end
 
-    println("Ki   = ", Ki)
-    println("K_nao = ", K_nao)
+    println("Su   = ", Su)
+    println("S_nao = ", S_nao)
 
-    @constraint(model, R_17[k in K, i in K_nao[k], t in T], w[i,k,t] == 0)
+    #@constraint(model, R_17[u in U, u in S_nao[s], h in H], w[u,s,h] == 0) #restricao problematica
+
+    #restricoes dia 27-10#
+
+    @constraint(model, R_18[u in U,u in S_nao[s] h in H], y[u,h] == sum(w[u,s,h] for s in S))
 
     write_to_file(model, caminho_lp)
 
     JuMP.optimize!(model)
 
+    status = JuMP.termination_status(model)
+    
+    if status == MOI.INFEASIBLE
+    # Accessa o ponteiro C do Gurobi diretamente
+        grb_model = JuMP.unsafe_backend(model)
+    
+    # Executa o IIS e exporta o arquivo
+        Gurobi.GRBcomputeIIS(grb_model)
+        Gurobi.GRBwrite(grb_model, "modelo_inviavel.ilp")
+    
+        println("Arquivo 'modelo_inviavel.ilp' gerado com sucesso!")
+    end
+    
+
     num_solucoes = result_count(model)
     println("encontradas $num_solucoes soluções")
 
-    status = JuMP.termination_status(model)
+    #status = JuMP.termination_status(model)
     primal = JuMP.primal_status(model)
     println("\nStatus da Solucao: ", status, " (primal: ", primal, ")")
+
+    salvaVariavel(w,U,S,H,y)
+    
+    
     return status, primal, w, num_solucoes;
 end

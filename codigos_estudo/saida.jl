@@ -1,6 +1,6 @@
 using JuMP
 
-function mostra_resultado(status, primal, w, D, Sd, G, Ij, Ig, I, K)
+function mostra_resultado(status, primal, w, D, Hd, G, Up, Ug, U , S, P)
     if primal == MOI.FEASIBLE_POINT
         if status != MOI.OPTIMAL
             println("Atenção: o solver parou com status $status; a solução abaixo é viável")
@@ -9,16 +9,16 @@ function mostra_resultado(status, primal, w, D, Sd, G, Ij, Ig, I, K)
         w_opt = JuMP.value.(w)
 
         profs_unidade = Dict(
-            i => [j for j in eachindex(Ij) if i in Ij[j]]
-            for i in I
+            u => [p for P in eachindex(Ij) if u in Up[p]]
+            for u in U
         )
 
-        function celula(g, t)
-            for i in Ig[g]
-                for k in K
-                    if w_opt[i, k, t] > 0.5
-                        profs = join(profs_unidade[i], "+P")
-                        return "U$i/P$profs/K$k"
+        function celula(g, h)
+            for u in Ug[g]
+                for s in S
+                    if w_opt[u, s, h] > 0.5
+                        profs = join(profs_unidade[u], "+P")
+                        return "U$u/P$profs/K$k"
                     end
                 end
             end
@@ -27,12 +27,12 @@ function mostra_resultado(status, primal, w, D, Sd, G, Ij, Ig, I, K)
 
         println("\nAlocação dos horários (U = unidade, P = professor, K = sala)")
 
-        n_slots = maximum(length(Sd[d]) for d in D)
+        n_slots = maximum(length(Hd[d]) for d in D)
         larg_rot = maximum(length("Dia $d") for d in D)
 
         for g in G
             tabela = [
-                m <= length(Sd[d]) ? celula(g, Sd[d][m]) : ""
+                m <= length(Hd[d]) ? celula(g, Hd[d][m]) : ""
                 for d in D, m in 1:n_slots
             ]
 
