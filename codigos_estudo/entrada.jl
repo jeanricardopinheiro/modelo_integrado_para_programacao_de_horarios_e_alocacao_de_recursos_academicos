@@ -126,6 +126,8 @@ function ler_parametros(caminho)
 
     end
 
+    println("\nLENDO DADOS - ENTRADA\n")
+
     println("p = ", valores["p"])
     println("u = ", valores["u"])
     println("g = ", valores["g"])
@@ -133,9 +135,9 @@ function ler_parametros(caminho)
     println("d = ", valores["d"])
     println("h = ", valores["h"])
     println("t = ", valores["t"])
-    println("gt = ", valores["gi"])
+    println("gt = ", valores["gt"])
     println("hd = ", valores["hd"])
-    println("hdt = ", valores["hd"])
+    println("hdt = ", valores["hdt"])
     println("up = ", valores["up"])
     println("ug = ", valores["ug"])
     println("ut = ", valores["ut"])
@@ -147,10 +149,13 @@ function ler_parametros(caminho)
     println("hfd1 = ", valores["hfd1"])
     println("vu = ", valores["vu"])
     println("qs = ", valores["qs"])
+    println("hu = ", valores["hu"])
+
+    println("\n")
 
     return valores["p"], valores["u"], valores["g"], valores["s"], valores["d"],
            valores["h"], valores["t"], valores["gt"], valores["hd"], valores["hdt"], valores["up"],
-           valores["ug"], valores["ut"], valores["s"], valores["su"], valores["lmax"],
-           valores["nt"], valores["hld"], valores["hfd1"], valores["vu"], valores["qs"];
+           valores["ug"], valores["ut"], valores["su"], valores["lmax"],valores["nt"],
+           valores["hld"], valores["hfd1"], valores["vu"], valores["qs"], valores["hu"];
 
 end

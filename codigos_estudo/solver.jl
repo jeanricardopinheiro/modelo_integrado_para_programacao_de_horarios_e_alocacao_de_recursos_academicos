@@ -1,8 +1,11 @@
 using JuMP
 using Gurobi
+
+const MOI = JuMP.MOI
+
 include("salvateste.jl")
 
-function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, S, Su, Lmax, Nt, hld, hfd1, Vu, Qs)
+function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, Su, Lmax, Nt, hld, hfd1, Vu, Qs, Hu)
     caminho_lp = "arquivos_lp/aloc_horarios_lp.lp"
     model = JuMP.Model(Gurobi.Optimizer)
 
@@ -16,6 +19,8 @@ function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, S, Su, L
     @variable(model, v[P ,H],Bin)
     @variable(model, z[P , D, T],Bin)
     @variable(model, w[U , S, H],Bin)
+
+    println("\nPASSAGEM DE DADOS - SOLVER\n")
 
     println("P = ", P)
     println("U = ", U)
@@ -39,15 +44,17 @@ function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, S, Su, L
     println("Vu = ", Vu)
     println("Qs = ", Qs)
 
+    println("\n")
+
     @constraint(model, R_1[u in U], sum(y[u,h] for h in H) == Hu[u])   #se G é um vetor e estamos interresados no que tem dentro devemos
                                                                         #fazer g in G, se G for um valor ai sim g in 1:G
-    @constraint(model,R_2[g in G, h in H] ,sum(y[u,h] for u in Ug[u]) <=1)
+    @constraint(model,R_2[g in G, h in H] ,sum(y[u,h] for u in Ug[g]) <=1)
 
-    @constraint(model, R_3[p in P,h in H] ,sum(y[u,h] for p in Up[p]) == v[p,h])
+    @constraint(model, R_3[p in P,h in H] ,sum(y[u,h] for u in Up[p]) == v[p,h])
 
     @constraint(model, R_4[p in P,h in H] ,v[p,h]<=1)
 
-    @constraint(model, R_5[p in P,d in D] ,sum(v[p,h] for h in Hd[h]) <=Lmax)
+    @constraint(model, R_5[p in P,d in D] ,sum(v[p,h] for h in Hd[d]) <=Lmax)
 
     #=adicionando restrições de tempo de descanso=#
     @constraint(model, R_6[p in P,d in D[1:end-1]] ,(v[p,hld[d]])+(v[p,hfd1[d]])<=1) #(2) ultimo e primeiro
@@ -59,42 +66,45 @@ function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, S, Su, L
 
     #@constraint(model, R_9[j in J,d in D[1:end-1]] ,(v[j,tud[d]])+(v[j,tpdd[d]])<=1) # jornada de descanso minimo (descartável?)
 
-    @constraint(model, R_9[p in P, d in D, t in T],sum(v[p,h] for h in Hdt[p,h]) <= ( Nt[t] * z[p,d,t] ) )
+    @constraint(model, R_9[p in P, d in D, t in T],sum(v[p,h] for h in Hdt[d,t]) <= ( Nt[t] * z[p,d,t] ) )
 
-    @constraint(model, R_10[p in P,d in D] ,sum(z[p,d,t] for t in t) <= 2)
+    @constraint(model, R_10[p in P,d in D] ,sum(z[p,d,t] for t in T) <= 2)
 
     #constraint(model, R_11[p in P] , sum(sum(v[p,h] for h in Hd[h]) for d in D[d]) == sum(H[u] for u in Up[u])) (dispensável)
 
-    @constraint(model, R_12[u in U,s in s, h in H] ,Vu[u]*w[u,s,h] <= Qs[s])
+    @constraint(model, R_12[u in U,s in S, h in H] ,Vu[u]*w[u,s,h] <= Qs[s])
 
     @constraint(model, R_13[s in S,h in H] ,sum(w[u,s,h] for u in U) <= 1)
 
-    @constraint(model, R_14[g in G,h in H] ,sum(sum(w[u,s,h] for s in S) for u in Ug[u]) <= 1)
+    @constraint(model, R_14[g in G,h in H] ,sum(sum(w[u,s,h] for s in S) for u in Ug[g]) <= 1)
 
     #=novas restricoes 06-10=#
 
-    @constraint(model, R_15[p in P,h in H] ,sum(sum(w[u,s,h] for s in s) for u in Up[u]) == v[p,h])
+    @constraint(model, R_15[p in P,h in H] ,sum(sum(w[u,s,h] for s in S) for u in Up[p]) == v[p,h])
     
-    @constraint(model, R_16[p in P,h in H] ,v[p,h] <= 1)
-
+    #@constraint(model, R_16[p in P,h in H] ,v[p,h] <= 1) #já existe a restrição 4 que é exatamente igual
+    #=
     S_nao = [Int64[] for s in S]
 
     for s in S
         for u in U
-            if !(u in Su[u])
-                push!(S_nao[k], u)
+            if !(u in Su[s])
+                push!(S_nao[s], u)
             end
         end
     end
 
     println("Su   = ", Su)
     println("S_nao = ", S_nao)
+    =#
+    S_nao = Dict(u => [s for s in S if !(s in Su[u])] for u in U)
 
     #@constraint(model, R_17[u in U, u in S_nao[s], h in H], w[u,s,h] == 0) #restricao problematica
+    @constraint(model, R_17[u in U, s in S_nao[u], h in H], w[u,s,h] == 0) #restricao problematica
 
     #restricoes dia 27-10#
 
-    @constraint(model, R_18[u in U,u in S_nao[s] h in H], y[u,h] == sum(w[u,s,h] for s in S))
+    @constraint(model, R_18[u in U,#=s in S_nao[u],=# h in H], y[u,h] == sum(w[u,s,h] for s in S))
 
     write_to_file(model, caminho_lp)
 
@@ -102,7 +112,7 @@ function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, S, Su, L
 
     status = JuMP.termination_status(model)
     
-    if status == MOI.INFEASIBLE
+    if status == MOI.INFEASIBLE || status == MOI.INFEASIBLE_OR_UNBOUNDED
     # Accessa o ponteiro C do Gurobi diretamente
         grb_model = JuMP.unsafe_backend(model)
     
