@@ -88,7 +88,7 @@ function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, Su, Lmax
 
     for s in S
         for u in U
-            if !(u in Su[s])
+            if !(s in Su[u])
                 push!(S_nao[s], u)
             end
         end
@@ -99,7 +99,6 @@ function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, Su, Lmax
     =#
     S_nao = Dict(u => [s for s in S if !(s in Su[u])] for u in U)
 
-    #@constraint(model, R_17[u in U, u in S_nao[s], h in H], w[u,s,h] == 0) #restricao problematica
     @constraint(model, R_17[u in U, s in S_nao[u], h in H], w[u,s,h] == 0) #restricao problematica
 
     #restricoes dia 27-10#
