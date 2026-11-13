@@ -46,7 +46,25 @@ function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, Su, Lmax
 
     println("\n")
 
-    @constraint(model, R_1[u in U], sum(y[u,h] for h in H) == Hu[u])   #se G é um vetor e estamos interresados no que tem dentro devemos
+    Ut_nao = Dict(t => [u for u in U if !(u in Ut[t])] for t in T)
+
+    println("Ut = ", Ut)
+    println("Ut_nao = ", Ut_nao)
+
+
+    @constraint(model, R_123[u in U],sum(y[u,h] for t in T if u in Ut[t] for d in D for h in Hdt[d,t]) == Hu[u])
+
+    @constraint(model, R_124[t in T, u in Ut_nao[t], d in D, h in Hdt[d,t]],y[u,h] == 0)
+
+    #=@constraint(model, R_125[
+        u in U,
+        h in first(H):(last(H)-2),
+        k in (h+2):last(H)
+        ],
+    y[u,h] + y[u,k] <= 1 + y[u,h+1]
+    )=#
+
+    #@constraint(model, R_1[u in U], sum(y[u,h] for h in H) == Hu[u])   #se G é um vetor e estamos interresados no que tem dentro devemos
                                                                         #fazer g in G, se G for um valor ai sim g in 1:G
     @constraint(model,R_2[g in G, h in H] ,sum(y[u,h] for u in Ug[g]) <=1)
 
@@ -98,6 +116,8 @@ function resolucao_modelo(P, U, G, S, D, H, T, Gt, Hd, Hdt, Up, Ug, Ut, Su, Lmax
     println("S_nao = ", S_nao)
     =#
     S_nao = Dict(u => [s for s in S if !(s in Su[u])] for u in U)
+
+    println("S_nao = ", S_nao)
 
     @constraint(model, R_17[u in U, s in S_nao[u], h in H], w[u,s,h] == 0) #restricao problematica
 
